@@ -1,6 +1,8 @@
 package br.com.dio.ui;
 
+import br.com.dio.persistence.entity.BoardColumnEntity;
 import br.com.dio.persistence.entity.BoardEntity;
+import br.com.dio.service.BoardColumnQueryService;
 import br.com.dio.service.BoardQueryService;
 import lombok.AllArgsConstructor;
 
@@ -13,11 +15,12 @@ import static br.com.dio.persistence.config.ConnectionConfig.getConnection;
 public class BoardMenu {
 
     private final Scanner scanner = new Scanner(System.in).useDelimiter("\n");
+
     private final BoardEntity entity;
 
     public void execute() {
         try {
-            System.out.printf("Bem vindo ao board %s, selecione a operação desejada\n", entity.getId());
+            System.out.printf("Bem vindo ao board %s, selecione a operação desejada", entity.getId());
             var option = -1;
             while (option != 9) {
                 System.out.println("1 - Criar um card");
@@ -28,7 +31,7 @@ public class BoardMenu {
                 System.out.println("6 - Ver board");
                 System.out.println("7 - Ver coluna com cards");
                 System.out.println("8 - Ver card");
-                System.out.println("9 - Voltar para o menu anterior");
+                System.out.println("9 - Voltar para o menu anterior um card");
                 System.out.println("10 - Sair");
                 option = scanner.nextInt();
                 switch (option) {
@@ -45,50 +48,58 @@ public class BoardMenu {
                     default -> System.out.println("Opção inválida, informe uma opção do menu");
                 }
             }
-        } catch (SQLException ex) {
+        }catch (SQLException ex){
             ex.printStackTrace();
             System.exit(0);
         }
     }
 
     private void createCard() {
-        // implementar lógica
     }
 
     private void moveCardToNextColumn() {
-        // implementar lógica
     }
 
     private void blockCard() {
-        // implementar lógica
     }
 
     private void unblockCard() {
-        // implementar lógica
     }
 
     private void cancelCard() {
-        // implementar lógica
     }
 
     private void showBoard() throws SQLException {
-        try (var connection = getConnection()) {
+        try(var connection = getConnection()){
             var optional = new BoardQueryService(connection).showBoardDetails(entity.getId());
             optional.ifPresent(b -> {
                 System.out.printf("Board [%s,%s]\n", b.id(), b.name());
                 b.columns().forEach(c ->
-                        System.out.printf("Coluna [%s] tipo: [%s] tem %s cards\n",
-                                c.name(), c.kind(), c.cardsAmount())
+                        System.out.printf("Coluna [%s] tipo: [%s] tem %s cards\n", c.name(), c.kind(), c.cardsAmount())
                 );
             });
         }
     }
 
-    private void showColumn() {
-        // implementar lógica
+    private void showColumn() throws SQLException {
+        var columnsIds = entity.getBoardColumns().stream().map(BoardColumnEntity::getId).toList();
+        var selectedColumn = -1L;
+        while (!columnsIds.contains(selectedColumn)){
+            System.out.printf("Escolha uma coluna do board %s\n", entity.getName());
+            entity.getBoardColumns().forEach(c -> System.out.printf("%s - %s [%s]\n", c.getId(), c.getName(), c.getKind()));
+            selectedColumn = scanner.nextLong();
+        }
+        try(var connection = getConnection()){
+            var column = new BoardColumnQueryService(connection).findById(selectedColumn);
+            column.ifPresent(co -> {
+                System.out.printf("Coluna %s tipo %s\n", co.getName(), co.getKind());
+                co.getCards().forEach(ca -> System.out.printf("Card %s - %s\nDescrição: %s",
+                        ca.getId(), ca.getTitle(), ca.getDescription()));
+            });
+        }
     }
 
     private void showCard() {
-        // implementar lógica
     }
+
 }
